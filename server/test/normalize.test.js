@@ -38,6 +38,9 @@ test('fbc/fbp só aceitos se válidos', () => {
   assert.equal(validFbc('abc'), undefined);
   assert.ok(validFbp('fb.1.1700000000000.1234567890'));
   assert.equal(validFbp(''), undefined);
+  // sufixo da Parameter Builder Library não pode invalidar o valor
+  assert.ok(validFbp('fb.1.1700000000000.1234567890.AQYBAQIA'));
+  assert.ok(validFbc('fb.1.1700000000000.AbCdEf.AQYBAQIA'));
 });
 
 test('user_data: IP/UA/fbc/fbp não são hasheados', () => {

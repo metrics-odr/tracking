@@ -1,45 +1,81 @@
-# 03 · GTM Web
+# 03 · GTM Web (seguindo o post)
+
+Nomes de variáveis, tags e acionadores abaixo seguem o post. Itens marcados **(+)** são acréscimos deste repo para EMQ 9+.
 
 ## 1. Variáveis
 
-| Nome | Tipo | Configuração |
+### Incorporadas (Configurar → ativar)
+Click Element, Click Classes, Click ID, Click Target, Click Text, Click URL, Form Element, Form Target, Form Text, Form URL, Page URL.
+
+### Definidas pelo usuário
+
+| Nome | Tipo | Valor |
 |---|---|---|
-| `JS - event_id` | Custom JavaScript | `gtm-web/event-id.js` (lê `dlv event_id` ou gera) |
-| `DLV - event_id` | Data Layer Variable | `event_id` |
-| `DLV - user_data.email` / `.phone` / `.first_name` / `.last_name` / `.city` / `.state` / `.zip` / `.country` / `.dob` / `.gender` | Data Layer Variable | `user_data.*` (valores **crus**, sem hash; hash no servidor) |
-| `JS - external_id` | Custom JavaScript | `gtm-web/external-id.js` |
-| `Cookie - _fbp` | 1st-party cookie | `_fbp` |
-| `JS - fbc` | Custom JavaScript | `gtm-web/fbc.js` (cookie `_fbc` ou cria de `?fbclid=`) |
-| `Const - Pixel ID` | Constante | ID do dataset/Pixel |
-| `Const - sGTM URL` | Constante | `https://track.seudominio.com.br` |
+| `GA4 - ID da Métrica` | Permanente | `G-XXXXXXX` (GA4 → Admin → Fluxos de dados → Web) |
+| `Meta Ads - Pixel ID` | Permanente | ID do Pixel/Conjunto de dados (Events Manager) |
+| `Meta Ads - Click ID - _fbc` | Cookie primário | `_fbc` |
+| `Meta Ads - Browser ID - _fbp` | Cookie primário | `_fbp` |
+| `Server URL` | Permanente | `https://server.seudominio.com.br` |
+| `Meta Ads - External ID` | Analytics Storage | *Client ID* (padrão do post). Com login/CRM, prefira o ID do usuário (doc 00, lacuna 3) |
+| `Meta Ads - Event ID` | Modelo da comunidade **Event ID** (mbaersch) | Gera um ID único por evento, igual para todas as tags do mesmo evento |
+| `UserData - Email` | JavaScript personalizado | [`gtm-web/userdata-email.js`](../gtm-web/userdata-email.js) |
+| `UserData - Phone` | JavaScript personalizado | [`gtm-web/userdata-phone.js`](../gtm-web/userdata-phone.js) |
+| `UserData - Name` | JavaScript personalizado | [`gtm-web/userdata-name.js`](../gtm-web/userdata-name.js) com `PART='first'` |
+| `UserData - Last Name` **(+)** | JavaScript personalizado | mesmo arquivo com `PART='last'` |
+| `UserData - City / State / Zip / Country / DOB / Gender` **(+)** | JavaScript personalizado | [`gtm-web/userdata-address-field.js`](../gtm-web/userdata-address-field.js), uma variável por campo (`FIELD`) |
 
-> Envie o `user_data` **cru** do navegador ao seu servidor (HTTPS first-party) e hasheie lá. Para o Pixel (browser), use Advanced Matching, que hasheia no cliente.
+> `fbc`: se o cookie `_fbc` não existir mas a URL tiver `?fbclid=`, use [`gtm-web/fbc.js`](../gtm-web/fbc.js) no lugar do cookie primário. Nunca invente `fbc` sem `fbclid`.
 
-## 2. Tags
+## 2. Tags GA4
 
-1. **GA4 – Configuração**
-   - Measurement ID, `server_container_url = {{Const - sGTM URL}}`.
-   - Campos: `user_id = {{JS - external_id}}`, `send_page_view = false` (controle por tag).
-2. **GA4 – Evento** (uma tag por evento ou uma tag dinâmica com `{{Event}}`)
-   - Parâmetros: `event_id = {{JS - event_id}}`, `ecommerce` (via DL), `user_data` (campos acima), `fbp`, `fbc`, `external_id`.
-   - Evento `page_view` no gatilho *All Pages*.
-3. **Meta Pixel – base** (template oficial/Community Template "Facebook Pixel")
-   - `PageView` com `eventID = {{JS - event_id}}`.
-   - Advanced Matching ligado, `external_id = {{JS - external_id}}`.
-4. **Meta Pixel – eventos** (ViewContent, AddToCart, InitiateCheckout, AddPaymentInfo, Purchase, Lead…)
-   - **`Event ID = {{JS - event_id}}`** (o *mesmo* valor enviado ao GA4).
-   - Objeto: `content_ids`, `contents`, `content_type`, `value`, `currency`, `num_items`, `order_id`.
+### `GA4 - Google Tag`
+- Tipo: Google Analytics (Google Tag). ID da métrica: `{{GA4 - ID da Métrica}}`.
+- Parâmetros de configuração: `server_container_url = {{Server URL}}`, `send_page_view = false`, `send_lead = false`.
+- Acionador: Visualizações de página (todas).
 
-## 3. Gatilhos
+### Eventos GA4 (tipo *Google Analytics: evento do GA4*, ID `{{GA4 - ID da Métrica}}`)
 
-Custom Event para cada evento do dataLayer: `view_item`, `add_to_cart`, `begin_checkout`, `add_payment_info`, `purchase`, `generate_lead`, `sign_up`, `search`. Dispare **GA4 e Pixel no mesmo gatilho** para compartilharem o mesmo `event_id`.
+| Tag | Nome do evento | Acionador | Parâmetros de evento | Propriedades do usuário |
+|---|---|---|---|---|
+| `GA4 - Evento - Page View` | `page_view` | Visualização de página (todas) | `event_id`, `external_id`, `fbc`, `fbp`, `server_container_url` | as mesmas do lead, quando já conhecidas |
+| `GA4 - Evento - Clique no Link` | `link_click` | Cliques (todos) | `click_url`, `click_target`, `click_text`, `fbc`, `fbp`, `event_id`, `external_id`, `server_container_url` | `user_fn`, `user_email`, `user_phone` |
+| `GA4 - Evento - Lead` | `lead` | Envio de formulário (todos) | `event_id`, `external_id`, `fbc`, `fbp`, `form_url`, `form_element`, `form_text`, `server_container_url` | `user_email`, `user_fn`, `user_phone` |
 
-## 4. Ordem e consentimento
+Valores: `event_id = {{Meta Ads - Event ID}}`, `external_id = {{Meta Ads - External ID}}`, `fbc = {{Meta Ads - Click ID - _fbc}}`, `fbp = {{Meta Ads - Browser ID - _fbp}}`, `server_container_url = {{Server URL}}`.
 
-- Consent Mode v2: `ad_storage`, `ad_user_data`, `ad_personalization`, `analytics_storage` (ver `docs/07`).
-- Tags de Pixel exigem `ad_storage` concedido (Consentimento adicional nas tags).
-- Dispare *Consent Initialization* antes de qualquer tag.
+**(+) Propriedades do usuário adicionais** no evento `lead` (e nos demais quando conhecidas):
 
-## 5. Preview
+| Propriedade | Valor |
+|---|---|
+| `user_ln` | `{{UserData - Last Name}}` |
+| `user_city` | `{{UserData - City}}` |
+| `user_state` | `{{UserData - State}}` |
+| `user_zip` | `{{UserData - Zip}}` |
+| `user_country` | `{{UserData - Country}}` |
+| `user_dob` | `{{UserData - DOB}}` |
+| `user_gender` | `{{UserData - Gender}}` |
 
-Use o modo **Preview** do GTM + Tag Assistant para confirmar que `event_id` é idêntico no Pixel (`eventID`) e no hit GA4.
+> Estas propriedades trafegam só até o **seu** servidor (first-party). Bloqueie o repasse ao Google Analytics no Server (doc 04, seção 6).
+
+## 3. Meta Pixel (modelo *Meta Pixel* / facebook, na Galeria)
+
+Uma tag por evento (`PageView`, `Lead`, e `Link Click` como evento personalizado):
+
+| Campo | Valor |
+|---|---|
+| Facebook Pixel ID(s) | `{{Meta Ads - Pixel ID}}` |
+| Event Name | Standard → `Lead` (ou `PageView`; Custom → `link_click`) |
+| Enable Advanced Matching | marcado |
+| Customer Information Data Parameters | `External ID` = `{{Meta Ads - External ID}}` **(+)** `Email`, `Phone`, `First Name`, `Last Name`, `City`, `State`, `Zip`, `Country`, `Date of Birth`, `Gender` com as variáveis `UserData - *` |
+| More Settings → **Event ID** | `{{Meta Ads - Event ID}}` (o **mesmo** do GA4) |
+| Acionador | O mesmo do respectivo evento GA4 (ex.: `ESM \| Lead` = envio de formulário) |
+
+O Pixel hasheia o Advanced Matching no navegador. O servidor (Stape) hasheia o que enviar via CAPI.
+
+## 4. Consentimento (LGPD)
+
+Respeite o Consent Mode v2 (doc 07). Sem `ad_user_data`/`ad_storage` concedidos, não dispare Pixel nem envie `user_*`.
+
+## 5. Teste
+
+Tag Assistant / Preview: confirme que o `event_id` do Pixel e o do hit GA4 para o servidor (`/g/collect`) são idênticos.

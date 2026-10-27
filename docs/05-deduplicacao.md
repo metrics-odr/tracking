@@ -13,6 +13,10 @@ A Meta deduplica eventos do Pixel e da CAPI quando têm **mesmo `event_name` e m
 
 ## Implementação
 
+**Como no post:** variável `Meta Ads - Event ID` no Web usando o modelo da comunidade **Event ID** (mbaersch), que gera um ID único por evento. Use essa **mesma variável** em (1) parâmetro `event_id` das tags GA4, (2) campo *Event ID* (More Settings) das tags Meta Pixel e, no Server, (3) variável de Dados do evento `event_id` na propriedade *Event ID* da tag Facebook Conversion API. As tags do mesmo evento precisam disparar no **mesmo acionador/evento do dataLayer** para compartilhar o valor.
+
+**Alternativa (site próprio):** o `event_id` vem pronto no `dataLayer.push` (abaixo) e a variável apenas o lê.
+
 ```js
 // dataLayer push com event_id fixo para todo o fluxo
 dataLayer.push({

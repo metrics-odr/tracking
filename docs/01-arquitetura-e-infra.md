@@ -11,18 +11,16 @@
 
 ## Hospedagem do container server
 
-Opções comuns: **Google Cloud Run/App Engine** (oficial, via provisionamento automático no GTM), **Stape** (gerenciado, simples de apontar domínio) ou outro provedor de containers. Recomendações:
+O setup de referência (post) usa **Stape**, região **SA East (Brasil)**, plano Free (até 10 mil solicitações/mês) e subdomínio por CNAME. Passo a passo em [04-gtm-server.md](04-gtm-server.md).
 
-- Produção: **mínimo 2 instâncias** (Cloud Run: `min-instances=2`) para não perder hits em cold start.
-- Escolha região próxima do público (Brasil: `southamerica-east1`).
-- Configure `PREVIEW_SERVER_URL` apenas para o servidor de preview, nunca como produção.
+Alternativa: **Google Cloud Run** (provisionamento automático do GTM), `min-instances ≥ 2` para evitar perda de hits em cold start, região `southamerica-east1`.
 
 ## Domínio first-party
 
-1. Crie `track.seudominio.com.br` (ou `metrics.`, nome neutro — evite `analytics`, `tracking`, `gtm`).
-2. Aponte para o serviço (registro **A/AAAA** ou **CNAME**, conforme provedor). Use **mesmo domínio raiz** do site para cookies first-party.
-3. No GTM Web, em *Configuração GA4* → `server_container_url = https://track.seudominio.com.br`.
-4. Se possível, use **proxy no mesmo origin** (ex.: `seudominio.com.br/metrics/`) para o carregamento do `gtm.js`/`gtag` (reduz bloqueio por adblock).
+1. Crie `server.seudominio.com.br` (nome neutro; evite `analytics`, `tracking`, `gtm`).
+2. DNS: **CNAME** `server` → `sab.stape.io`, com **proxy desativado** (ex.: Cloudflare em "somente DNS").
+3. Use o **mesmo domínio raiz** do site para cookies first-party.
+4. No GTM Web, o parâmetro `server_container_url` do Google Tag aponta para essa URL.
 
 ## Cookies relevantes
 

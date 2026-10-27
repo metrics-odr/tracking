@@ -55,13 +55,18 @@ export function hashField(key, value, opts) {
   return n ? sha256(n) : undefined;
 }
 
-/** fbc válido: fb.1.<ms>.<fbclid>. Retorna undefined se inválido (nunca inventar). */
+/**
+ * fbc válido: fb.<subdomain_index>.<creation_time>.<fbclid>. Retorna undefined se
+ * inválido (nunca inventar). A Parameter Builder Library da Meta adiciona um sufixo
+ * ao valor, por isso aceitamos qualquer sequência sem espaços após o timestamp.
+ */
 export function validFbc(v) {
   const s = str(v);
   return /^fb\.[0-2]\.\d{10,13}\.\S+$/.test(s) ? s : undefined;
 }
 
+/** fbp: fb.<subdomain_index>.<creation_time>.<random_number> (+ sufixo opcional da Parameter Builder). */
 export function validFbp(v) {
   const s = str(v);
-  return /^fb\.[0-2]\.\d{10,13}\.\d+$/.test(s) ? s : undefined;
+  return /^fb\.[0-2]\.\d{10,13}\.\S+$/.test(s) ? s : undefined;
 }

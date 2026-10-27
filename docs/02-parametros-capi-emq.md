@@ -1,6 +1,6 @@
 # 02 · Parâmetros da CAPI e Event Match Quality (EMQ 9+)
 
-> Fonte: especificação pública da Conversions API da Meta (parâmetros de servidor, `user_data`, `custom_data`) e guias de boas práticas. Confirme sempre na documentação atual da Meta, pois campos e pesos mudam.
+> Fonte: documentação oficial da Meta ([Customer Information Parameters](https://developers.facebook.com/docs/marketing-api/conversions-api/parameters/customer-information-parameters) e [Best Practices](https://developers.facebook.com/docs/marketing-api/conversions-api/best-practices), lidas em 2026-10-27) e [Parameter Builder Library](https://developers.facebook.com/documentation/ads-commerce/conversions-api/parameter-builder-library) (citada no post). Confirme sempre na documentação atual, pois campos e pesos mudam.
 
 ## Como o EMQ é calculado
 
@@ -15,7 +15,7 @@ Para chegar a 9+, o caminho prático é enviar **todos** os identificadores abai
 | `event_name` | Sim | Padrão (`Purchase`…) ou custom. Igual ao do Pixel p/ dedup |
 | `event_time` | Sim | Unix timestamp em **segundos**, UTC. Até 7 dias no passado |
 | `event_id` | **Sim p/ dedup** | String única por ação; idêntica à do Pixel (`eventID`) |
-| `event_source_url` | Sim p/ web | URL completa da página do evento |
+| `event_source_url` | **Sim (todos os eventos web)** | URL completa da página do evento |
 | `action_source` | Sim | `website` (web), `system_generated`, `crm`, `chat`, `phone_call`, `email`, `physical_store`, `app`, `other` |
 | `user_data` | Sim | Ver seção 2 |
 | `custom_data` | Conforme evento | Ver seção 3 |
@@ -41,13 +41,30 @@ Para chegar a 9+, o caminho prático é enviar **todos** os identificadores abai
 | `country` | País | Sim | ISO 3166-1 alpha-2, minúsculas | `br` |
 | `external_id` | ID do usuário no seu sistema (login/CRM/cookie estável) | Recomendado | trim; **igual em todos os eventos e canais** | `u_839201` |
 | `client_ip_address` | IP do visitante | **Não** | IPv4/IPv6; **prefira IPv6** quando disponível | `2804:14d:...` |
-| `client_user_agent` | UA do navegador | **Não** | string original, sem alteração | `Mozilla/5.0 ...` |
+| `client_user_agent` | UA do navegador (**obrigatório em eventos web**) | **Não** | string original, sem alteração | `Mozilla/5.0 ...` |
 | `fbc` | Click ID | **Não** | `fb.1.<timestamp_ms>.<fbclid>` | `fb.1.1700000000000.AbCd…` |
 | `fbp` | Browser ID | **Não** | cookie `_fbp`: `fb.1.<timestamp_ms>.<random>` | `fb.1.1700000000000.1234567890` |
 | `subscription_id` | ID de assinatura | Não | | |
 | `fb_login_id` | ID de login Facebook | Não | | |
 | `lead_id` | ID do Lead Ads | Não | Para CRM/leads de formulário nativo | |
+| `ctwa_clid` | Click ID de anúncios Click-to-WhatsApp | Não | | |
+| `page_id`, `page_scoped_user_id`, `ig_account_id`, `ig_sid` | Mensageria (Messenger/Instagram) | Não | | |
 | `madid`, `anon_id`, `idfa`… | Apps | conforme | Somente app | |
+
+### Combinações inválidas (Graph API ≥ 13)
+
+A Meta rejeita o evento se ele tiver **somente** (ou um subconjunto de) uma destas combinações de `user_data`:
+
+- `ct` + `country` + `st` + `zp` + `ge` + `client_user_agent`
+- `db` + `client_user_agent`
+- `fn` + `ge`
+- `ln` + `ge`
+
+Ou seja, só dados demográficos amplos não bastam: inclua sempre algum identificador forte (`em`, `ph`, `external_id`, `fbp`/`fbc`, IP).
+
+### Parameter Builder Library
+
+A biblioteca de parâmetros da Meta normaliza e hasheia no cliente (JS) ou no servidor (PHP/NodeJS) e **acrescenta um sufixo** a `fbc`/`fbp`. Se usar, mantenha o valor completo, sem cortar. Os validadores de `server/` já aceitam o sufixo.
 
 Notas importantes:
 

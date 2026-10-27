@@ -1,79 +1,91 @@
-# 04 · GTM Server
+# 04 · GTM Server + Stape (seguindo o post)
 
-## 1. Clients
+## 1. Container e hospedagem (Stape)
 
-- **GA4 Client** (padrão): recebe `/g/collect` do GTM Web. Ative *Update cookies* e defina cookies via servidor (`FPID`).
-- Opcional: *Meta Pixel Client* (Stape) para receber o Pixel via servidor.
+1. GTM → conta do Web → **Administrador → +** → novo container tipo **Server** (nome do subdomínio, ex.: `server.seudominio.com.br`).
+2. Ao abrir: **Provisionar manualmente o servidor de tags** → copie o código de provisionamento.
+3. Stape ([stape.io/pt/sign-up](https://stape.io/pt/sign-up)) → criar container: nome igual ao do Server, conectar ao GTM (conta + container **Server**), **Server location = SA East (Brazil)**, plano **Free** (até 10 mil solicitações/mês; pagos a partir de ~R$ 100).
+4. Stape → Domains → **+ Add new** → subdomínio → *Manually* → Next. Anote os registros pedidos.
+5. No DNS do domínio: **CNAME**, host `server`, destino `sab.stape.io`, **proxy desativado** (se for Cloudflare, nuvem cinza).
+6. Stape → *Verify your subdomain* (minutos a horas).
+7. GTM Server → Administrador → Configurações do contêiner → **URL do servidor de tags** = `https://server.seudominio.com.br` (use a URL `*.stape.io` provisoriamente, mas troque após validar o domínio).
 
-## 2. Variáveis (Event Data)
+> Alternativa à Stape: Google Cloud Run (provisionamento automático do GTM), `min-instances ≥ 2` e região `southamerica-east1`. O restante deste documento não muda.
 
-| Variável | Event Data key |
+## 2. Client e acionadores
+
+- **Client**: GA4 (padrão, já vem criado). Ele recebe o hit `/g/collect` do GTM Web.
+- **Acionadores** (tipo *Evento personalizado*, nome = nome exato do evento no Web):
+
+| Acionador | Nome do evento |
 |---|---|
-| `ED - event_id` | `event_id` |
-| `ED - email` | `user_data.email` (ou `user_data.sha256_email_address` se já hasheado) |
-| `ED - phone` | `user_data.phone_number` |
-| `ED - first_name` / `last_name` | `user_data.address.first_name` / `.last_name` |
-| `ED - city` / `state` / `zip` / `country` | `user_data.address.city` / `.region` / `.postal_code` / `.country` |
-| `ED - dob`, `ED - gender` | `user_data.dob`, `user_data.gender` |
-| `ED - fbp`, `ED - fbc`, `ED - external_id` | `fbp`, `fbc`, `external_id` (ou `user_id`) |
-| `ED - ip` | `ip_override` |
-| `ED - ua` | `user_agent` |
-| `ED - page_location` | `page_location` |
+| `GA4 - All Events` | `.*` com **Usar correspondência de regex** marcado |
+| `GA4 - Page View` | `page_view` |
+| `GA4 - Link Click` | `link_click` |
+| `GA4 - Lead` | `lead` |
 
-Se `fbp`/`fbc` não vierem no evento, leia dos cookies da requisição com a variável *Request Cookie* (`_fbp`, `_fbc`).
+## 3. Variáveis
 
-## 3. Tag Meta CAPI
+Ative todas as incorporadas. Variáveis definidas pelo usuário:
 
-Use a tag oficial **Facebook Conversion API** (template da Meta, na Galeria) ou a da Stape.
+| Nome | Tipo | Chave / valor |
+|---|---|---|
+| `Meta Ads - Pixel ID` | Permanente | ID do Pixel |
+| `Meta Ads - API Token` | Permanente | Token da CAPI (Events Manager → Configurações → API de Conversões → gerar token). Fica **só aqui** |
+| `Event ID` | Dados do evento | `event_id` |
+| `fbc` | Dados do evento | `fbc` |
+| `fbp` | Dados do evento | `fbp` |
+| `Meta Ads - External ID` | Dados do evento | `external_id` |
+| `User Data - Email` | Dados do evento | `user_properties.user_email` |
+| `User Data - Phone` | Dados do evento | `user_properties.user_phone` |
+| `User Data - First Name` | Dados do evento | `user_properties.user_fn` |
+| `User Data - Last Name` **(+)** | Dados do evento | `user_properties.user_ln` |
+| `User Data - City` / `State` / `Zip` / `Country` **(+)** | Dados do evento | `user_properties.user_city` / `user_state` / `user_zip` / `user_country` |
+| `User Data - DOB` / `Gender` **(+)** | Dados do evento | `user_properties.user_dob` / `user_gender` |
+
+> Os caminhos `user_properties.*` são os que o GA4 Client usa para propriedades do usuário. Confirme em **Preview → evento → Event Data** e ajuste se o seu aparecer diferente.
+
+## 4. Tag *Facebook Conversion API* (modelo da Stape, na Galeria)
+
+Uma tag por evento (`Meta Ads - Evento - Page View`, `... - Lead`, `... - Link Click`), acionador = o `GA4 - *` correspondente.
 
 | Campo | Valor |
 |---|---|
-| Event Name Setup | *Inherit from client* (mapeia GA4→Meta) ou *Override* |
-| API Access Token | Token do dataset (Events Manager → Settings → Conversions API) |
-| Pixel/Dataset ID | ID do Pixel |
-| Action Source | `website` |
-| Test Event Code | (somente durante testes — remova depois) |
-| Send all user data | Ative, se disponível |
-| Gatilho | Todos os eventos GA4 mapeados (`page_view`, `view_item`, `add_to_cart`, `begin_checkout`, `add_payment_info`, `purchase`, `generate_lead`, `sign_up`) |
+| Event Name Setup Method | **Override** → Standard → `PageView` / `Lead` (Link Click: Custom → `link_click`) |
+| Action Source | `Website` |
+| Facebook Pixel ID | `{{Meta Ads - Pixel ID}}` |
+| API Access Token | `{{Meta Ads - API Token}}` |
+| Test ID | só durante testes (Events Manager → Test Events). **Remova antes de publicar** |
+| Override the cookie domain | False (ajuste se o site usar domínio diferente do servidor) |
+| Generate _fbp cookie if it does not exist | marcado |
+| Use HttpOnly cookies for _fbc and _fbp | desmarcado (o Pixel no navegador precisa ler) |
+| Enable Event Enhancement | marcado |
+| **Server Event Data Override** → Automap Server Event Data | marcado |
+| ↳ Property **Event ID** | `{{Event ID}}` |
+| **User Data** → Automap User Data | marcado |
+| ↳ Email / Phone / First Name | `{{User Data - Email}}` / `{{User Data - Phone}}` / `{{User Data - First Name}}` |
+| ↳ Click ID / Browser ID / External ID | `{{fbc}}` / `{{fbp}}` / `{{Meta Ads - External ID}}` |
+| ↳ **(+)** Last Name, City, State, Zip, Country, Date of Birth, Gender | as variáveis `User Data - *` acima |
+| Tag Execution Consent Settings | exigir consentimento de publicidade |
 
-### Server Event Data Override (adicione todos)
+A tag **normaliza e hasheia** os campos que precisam e aceita dados já hasheados. Não hasheie antes (hash duplo). O IP e o User-Agent do visitante vêm da requisição (confirme no Preview que `client_ip_address` não é o IP da Stape).
 
-| Propriedade | Valor |
-|---|---|
-| Event ID | `{{ED - event_id}}` |
-| Event Source URL | `{{ED - page_location}}` |
-| Email | `{{ED - email}}` |
-| Phone | `{{ED - phone}}` |
-| First Name / Last Name | `{{ED - first_name}}` / `{{ED - last_name}}` |
-| City / State / Zip / Country | variáveis acima |
-| Date of Birth / Gender | `{{ED - dob}}` / `{{ED - gender}}` |
-| External ID | `{{ED - external_id}}` |
-| FBP / FBC | `{{ED - fbp}}` / `{{ED - fbc}}` |
-| Client IP Address | `{{ED - ip}}` |
-| Client User Agent | `{{ED - ua}}` |
-| Order ID / Value / Currency / Content IDs / Contents / Num Items | do `ecommerce.*` |
+Parâmetros de `custom_data` para comércio (`Purchase` etc.): `value`, `currency`, `content_ids`, `contents`, `content_type`, `num_items`, `order_id` na seção *Custom Data*. Veja [02](02-parametros-capi-emq.md).
 
-A tag oficial hasheia (SHA-256) e normaliza automaticamente os campos PII. **Não** passe valores já hasheados para campos que ela hasheia (duplo hash). Se o dado já chega hasheado, use o campo `sha256_*` correspondente.
+## 5. Tag GA4 no Server
 
-## 4. Mapeamento de eventos GA4 → Meta
+Tag *Google Analytics: GA4* com `{{GA4 - ID da Métrica}}`, acionador `GA4 - All Events`.
 
-| GA4 | Meta | Mapeamento |
-|---|---|---|
-| `page_view` | `PageView` | |
-| `view_item` | `ViewContent` | `items[]` → `contents`, `content_ids`, `content_type=product` |
-| `add_to_cart` | `AddToCart` | idem |
-| `begin_checkout` | `InitiateCheckout` | + `num_items`, `value` |
-| `add_payment_info` | `AddPaymentInfo` | |
-| `purchase` | `Purchase` | + `transaction_id` → `order_id`, `value`, `currency` |
-| `generate_lead` | `Lead` | |
-| `sign_up` | `CompleteRegistration` | |
-| `search` | `Search` | `search_term` → `search_string` |
+## 6. Não envie PII ao Google Analytics
 
-## 5. Persistência de identificadores no servidor
+Como as propriedades `user_*` chegam ao Server junto do evento, a tag GA4 do Server pode encaminhá-las ao Google Analytics, o que a política do GA4 proíbe (e-mail, telefone e nome em texto puro). Solução:
 
-Para eventos subsequentes sem email/telefone (ex.: PageView após o login), armazene o `user_data` por `external_id`/`FPID` (Firestore no Cloud Run, ou cookie criptografado) e reinjete. Isso eleva o EMQ de eventos de topo de funil.
+1. GTM Server → **Transformações → Nova → Excluir parâmetros** (*Exclude parameters*).
+2. Excluir: `user_properties` (ou cada `user_*`) e, se preferir, `fbc`/`fbp`/`external_id`.
+3. **Aplique a transformação somente à tag GA4** (e à do Google Ads, se for o caso), **não** à tag da Meta.
 
-## 6. Segurança
+Teste no Preview do Server: a tag da Meta deve ver o `user_data`; a tag GA4 não.
 
-- Token da CAPI **somente** no servidor (variável de ambiente/segredo); nunca no dataLayer ou no GTM Web.
-- Restrinja acesso ao container e logs (contêm PII).
+## 7. Dica para mais EMQ: persistência no servidor
+
+Eventos sem formulário (page_view) não têm e-mail/telefone. Além do `sessionStorage` do Web, é possível guardar o `user_data` por `external_id` no servidor (ex.: Firestore via Stape Store) e reinjetá-lo nos próximos eventos. Eleva o EMQ de topo de funil, sempre com consentimento e prazo de retenção definido.
