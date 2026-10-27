@@ -28,6 +28,7 @@ Princípios:
 
 | Doc | Conteúdo |
 |---|---|
+| [SETUP.md](SETUP.md) | **Passo a passo completo, em ordem de aplicação** (Stape, GTM, GA4, Meta Pixel + CAPI) |
 | [docs/00-post-resumo-e-lacunas.md](docs/00-post-resumo-e-lacunas.md) | Resumo do post, o que ele envia hoje e as lacunas para 9+ |
 | [docs/01-arquitetura-e-infra.md](docs/01-arquitetura-e-infra.md) | Fluxo, hospedagem, domínio first-party, cookies |
 | [docs/02-parametros-capi-emq.md](docs/02-parametros-capi-emq.md) | **Todos os parâmetros** e regras de normalização/hash para EMQ 9+ |
@@ -41,6 +42,8 @@ Princípios:
 | [server/](server/) | Referência em Node (sem dependências) para enviar CAPI direto (CRM/webhooks/offline) com testes |
 
 ## Quick start
+
+**Guia principal, em ordem de aplicação: [SETUP.md](SETUP.md).** Resumo:
 
 1. Leia `docs/01` e provisione o container server + subdomínio.
 2. Implemente o `dataLayer` conforme `datalayer/` e `gtm-web/`.
