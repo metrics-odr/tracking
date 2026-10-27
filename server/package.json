@@ -1,0 +1,11 @@
+{
+  "name": "capi-reference",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Referência de normalização, hash e envio para a Meta Conversions API (sem dependências)",
+  "scripts": {
+    "test": "node --test \"test/*.test.js\""
+  },
+  "engines": { "node": ">=18" }
+}
