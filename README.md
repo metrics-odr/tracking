@@ -37,6 +37,7 @@ Princípios:
 | [docs/05-deduplicacao.md](docs/05-deduplicacao.md) | `event_id`, `external_id`, regras e verificação |
 | [docs/06-validacao-e-emq.md](docs/06-validacao-e-emq.md) | Testes, Events Manager, diagnóstico, checklist de 9+ |
 | [docs/07-lgpd-consentimento.md](docs/07-lgpd-consentimento.md) | Consentimento e boas práticas legais |
+| [docs/08-dashboard-meta-direto.md](docs/08-dashboard-meta-direto.md) | Dashboards com conexão direta ao Meta Ads via Cloudflare Worker (passo a passo e registro) |
 | [datalayer/](datalayer/) | Exemplos de `dataLayer` por evento (GA4 ecommerce + user_data) |
 | [gtm-web/](gtm-web/) | JS de apoio: `UserData - *` (e-mail, telefone, nome, endereço...), `event_id`, `fbc`, `external_id` |
 | [server/](server/) | Referência em Node (sem dependências) para enviar CAPI direto (CRM/webhooks/offline) com testes |
